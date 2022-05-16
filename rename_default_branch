@@ -106,7 +106,7 @@ EOM
     else
       echo
       printf "Proceed? [y/N] "
-      read answer
+      read answer </dev/tty
     fi
 
     [[ $answer =~ ^[Yy]$ ]] || return 1
@@ -140,7 +140,7 @@ EOM
     echo "Current: $current_default_branch"
     echo
     printf "Use default branch \"$TO\" on new repositories? [y/N] "
-    read answer
+    read answer </dev/tty
     
     [[ $answer =~ ^[Yy]$ ]] || return 0
 

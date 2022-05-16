@@ -1,0 +1,222 @@
+#!/bin/bash
+
+# This script renames the default branch from your local Git repository.
+#
+# Steps:
+#
+# 1. Rename the default branch on your Git remote server.
+# 2. Run this script on each machine which clones the repository.
+#
+# More information:
+# 
+#   https://github.com/ResultadosDigitais/rename_default_branch
+#
+
+_() {
+  set -euo pipefail
+
+  # Defaults
+  
+  DEFAULT_REMOTE=origin
+  DEFAULT_FROM=master
+  DEFAULT_TO=main
+
+  # Script
+
+  run() {
+    # Go to the current default branch
+    git checkout $FROM
+
+    # Rename the default branch and transfer all commit history to the new branch
+    git branch -m $FROM $TO
+
+    # Get the latest commits from the server
+    git fetch $REMOTE
+
+    # Update the local branch to track the new remote branch
+    git branch -u $REMOTE/$TO $TO
+
+    # Set the default branch (HEAD) as the new branch
+    git remote set-head $REMOTE $TO
+
+    # Remove tracking references to the previous branch name
+    git remote prune $REMOTE
+  }
+
+  ##########
+
+  usage() {
+    COMMAND_NAME=$(basename "$0")
+    cat <<EOM
+Usage: $COMMAND_NAME [OPTIONS]
+
+Rename the default branch from your local Git repository.
+
+Options:
+  -r, --remote string   Git remote name. Default: $DEFAULT_REMOTE
+  -f, --from string     Current default branch name. Default: $DEFAULT_FROM
+  -t, --to string       New default branch name. Default: $DEFAULT_TO
+  -h, --help            Show help
+      --debug           Show debug info
+
+Environment variables:
+  REMOTE           Same as --remote
+  FROM             Same as --from
+  TO               Same as --to
+  NONINTERACTIVE   When set to 1, disable all interactive prompts
+
+EOM
+  }
+
+  load_defaults() {
+    REMOTE=${REMOTE:-$DEFAULT_REMOTE}
+    FROM=${FROM:-$DEFAULT_FROM}
+    TO=${TO:-$DEFAULT_TO}
+  }
+
+  check_repository() {
+    # Check if directory is a Git repository
+    git rev-parse
+
+    # Check for uncommited changes
+    if [[ -n "$(git status --porcelain)" ]]; then
+      echo "There are uncommitted changes. Commit before proceeding."
+      exit 1
+    fi
+
+    # Check if new default branch already exists
+    if ! git ls-remote --exit-code $REMOTE $TO > /dev/null 2>&1; then
+      echo "The branch \"$TO\" does not exist in remote yet."
+      echo
+      echo "Before proceeding, rename or create the new default branch on your remote."
+      echo
+      echo "Instructions: https://github.com/ResultadosDigitais/rename_default_branch"
+      exit 1
+    fi
+  }
+
+  rename_default_branch() {
+    local answer;
+
+    echo "Default branch rename:"
+    echo "  $REMOTE/$FROM -> $REMOTE/$TO"
+    
+    if [[ $NONINTERACTIVE = 1 ]]; then
+      answer=Y
+    else
+      echo
+      read -p "Proceed? [y/N] " answer
+    fi
+
+    [[ $answer =~ ^[Yy]$ ]] || return 1
+    
+    echo
+    run
+
+    [[ $? -ne 0 ]] && return 1
+      
+    echo "Done"
+  }
+
+  git_global_default_branch() {
+    [[ $NONINTERACTIVE = 1 ]] && return 0
+
+    if ! version_check 2.28.0 $(git_version); then
+      echo
+      echo "Info: Upgrade your git to at least version 2.28.0 to set the default branch for new repositories."
+      return 0
+    fi
+
+    local current_default_branch="$(git config --default master --get init.defaultBranch)"
+
+    [[ "$current_default_branch" == "$TO" ]] && return 0
+
+    echo 
+    echo "********************************************************************************"
+    echo
+    echo "You may change the default branch for new repositories."
+    echo
+    echo "Current: $current_default_branch"
+    echo
+    read -p "Use default branch \"$TO\" on new repositories? [y/N] " answer
+    
+    [[ $answer =~ ^[Yy]$ ]] || return 0
+
+    echo
+    echo "Setting default branch..."
+    git config --global init.defaultBranch $TO
+  }
+
+  git_version() {
+    git --version | sed 's/git version //'
+  }
+
+  version_check() {
+    [[ $(parse_version "$2") -ge $(parse_version "$1") ]] && return 0 || return 1
+  }
+
+  parse_version() {
+    printf "$@" | awk -F. '{ printf("%d%03d%03d%03d", $1, $2, $3, $4); }'
+  }
+
+  # Load arguments
+
+  DEBUG=false
+  NONINTERACTIVE=${NONINTERACTIVE:-0}
+
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+
+    case "$key" in
+      -r|--remote)
+        REMOTE="$2"
+        shift
+        ;;
+      -f|--from)
+        FROM="$2"
+        shift
+        ;;
+      -t|--to)
+        TO="$2"
+        shift
+        ;;
+      --debug)
+        DEBUG=true
+        ;;
+      -h|--help)
+        usage
+        exit
+        ;;
+      *)
+        usage
+        exit 1
+        ;;
+    esac
+    shift
+  done
+
+  if [ $DEBUG == true ]; then
+    set -x
+  fi
+
+  # Run script
+  
+  set +e
+  (
+    set -e
+    load_defaults
+    check_repository
+    rename_default_branch
+    git_global_default_branch
+  )
+  set -e
+
+  exit 0
+}
+
+if [ -z "${BASH_VERSION:-}" ]; then
+  echo "Bash is required to run this script."
+  exit 1
+fi
+
+_ "$@"

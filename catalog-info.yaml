@@ -1,0 +1,8 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: rename_default_branch
+spec:
+  type: service
+  lifecycle: experimental
+  owner: rds-crm

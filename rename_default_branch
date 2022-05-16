@@ -105,7 +105,8 @@ EOM
       answer=Y
     else
       echo
-      read -p "Proceed? [y/N] " answer
+      printf "Proceed? [y/N] "
+      read answer
     fi
 
     [[ $answer =~ ^[Yy]$ ]] || return 1
@@ -138,7 +139,8 @@ EOM
     echo
     echo "Current: $current_default_branch"
     echo
-    read -p "Use default branch \"$TO\" on new repositories? [y/N] " answer
+    printf "Use default branch \"$TO\" on new repositories? [y/N] "
+    read answer
     
     [[ $answer =~ ^[Yy]$ ]] || return 0
 

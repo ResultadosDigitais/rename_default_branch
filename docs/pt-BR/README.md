@@ -21,7 +21,7 @@ Renomear a branch padrão de seu repositório Git tanto no servidor quanto local
 
 Se você não está renomeando de `master` para `main`, ajuste para os valores desejados:
 
-    curl -fsSL https://raw.githubusercontent.com/ResultadosDigitais/rename_default_branch/main/rename_default_branch | FROM=branch-anterior TO=branch-nova  bash
+    curl -fsSL https://raw.githubusercontent.com/ResultadosDigitais/rename_default_branch/main/rename_default_branch | FROM=branch-anterior TO=branch-nova bash
 
 Opções:
 

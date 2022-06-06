@@ -21,7 +21,7 @@ Rename the default branch from your Git repository both on server and local.
 
 If you are not renaming from `master` to `main`, set the desired values:
 
-    FROM=old-branch TO=new-branch curl -fsSL https://raw.githubusercontent.com/ResultadosDigitais/rename_default_branch/main/rename_default_branch | bash
+    curl -fsSL https://raw.githubusercontent.com/ResultadosDigitais/rename_default_branch/main/rename_default_branch | FROM=old-branch TO=new-branch bash
 
 Options:
 
